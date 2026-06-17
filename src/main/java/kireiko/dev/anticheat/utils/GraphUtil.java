@@ -1,53 +1,39 @@
 package kireiko.dev.anticheat.utils;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.List;
 
 public final class GraphUtil {
 
-    public static GraphResult getGraph(List<Double> values) {
-        StringBuilder graph = new StringBuilder();
-
-        double largest = 0;
-
-        for (double value : values) {
-            if (value > largest)
-                largest = value;
-        }
-
-        int GRAPH_HEIGHT = 2;
-        int positives = 0, negatives = 0;
-
-        for (int i = GRAPH_HEIGHT - 1; i > 0; i -= 1) {
-            StringBuilder sb = new StringBuilder();
-
-            for (double index : values) {
-                double value = GRAPH_HEIGHT * index / largest;
-
-                if (value > i && value < i + 1) {
-                    ++positives;
-                    sb.append(String.format("%s+", ChatColor.GREEN));
-                } else {
-                    ++negatives;
-                    sb.append(String.format("%s-", ChatColor.RED));
-                }
-            }
-
-            graph.append(sb);
-        }
-
-        return new GraphResult(graph.toString(), positives, negatives);
+    public static NamedTextColor getColorForPing(long ping) {
+        if (ping > 1000) return NamedTextColor.DARK_RED;
+        if (ping > 300) return NamedTextColor.RED;
+        if (ping > 100) return NamedTextColor.YELLOW;
+        return NamedTextColor.GREEN;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
     public static class GraphResult {
-        private final String graph;
-        private final int positives, negatives;
+        private final int positives;
+        private final int negatives;
+
+        public GraphResult(int positives, int negatives) {
+            this.positives = positives;
+            this.negatives = negatives;
+        }
+
+        public int getPositives() { return positives; }
+        public int getNegatives() { return negatives; }
+    }
+
+    public static GraphResult getGraph(List<Double> samples) {
+        int positives = 0;
+        int negatives = 0;
+        for (int i = 1; i < samples.size(); i++) {
+            double diff = samples.get(i) - samples.get(i - 1);
+            if (diff > 0) positives++;
+            else if (diff < 0) negatives++;
+        }
+        return new GraphResult(positives, negatives);
     }
 }

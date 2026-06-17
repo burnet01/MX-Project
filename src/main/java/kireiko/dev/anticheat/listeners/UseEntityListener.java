@@ -1,70 +1,51 @@
 package kireiko.dev.anticheat.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.*;
-import com.comphenix.protocol.wrappers.EnumWrappers;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.events.UseEntityEvent;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.utils.ConfigCache;
 import kireiko.dev.anticheat.utils.cache.EntityCache;
-import lombok.SneakyThrows;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.LivingEntity;
+import net.minestom.server.entity.damage.Damage;
+import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.player.PlayerPacketEvent;
+import net.minestom.server.network.packet.client.play.ClientInteractEntityPacket;
 
-import java.util.Collections;
+public final class UseEntityListener {
 
-public final class UseEntityListener extends PacketAdapter {
+    public static void register(GlobalEventHandler handler) {
+        handler.addListener(PlayerPacketEvent.class, event -> {
+            if (!(event.getPacket() instanceof ClientInteractEntityPacket interactPacket)) return;
 
-    public UseEntityListener() {
-        super(MX.getInstance(), ListenerPriority.HIGHEST, Collections.singletonList(PacketType.Play.Client.USE_ENTITY), ListenerOptions.ASYNC);
-    }
+            var player = event.getPlayer();
+            PlayerProfile profile = PlayerContainer.getProfile(player);
+            if (profile == null) return;
 
-    @SneakyThrows
-    @Override
-    public void onPacketReceiving(PacketEvent event) {
-        Player player = event.getPlayer();
-        PlayerProfile profile = PlayerContainer.getProfile(player);
-        if (profile == null) {
-            return;
-        }
-        PacketContainer packet = event.getPacket();
-        boolean attack = !packet.getEntityUseActions().getValues().isEmpty() ?
-                        packet.getEntityUseActions().read(0).toString().equals("ATTACK")
-                        : packet.getEnumEntityUseActions().read(0).getAction().equals(
-                        EnumWrappers.EntityUseAction.ATTACK);
-        if (packet.getIntegers().getValues().isEmpty()) return;
-        int entityId = packet.getIntegers().read(0);
-        Entity entity = EntityCache.get(entityId);
-        if (profile.getAttackBlockToTime() > System.currentTimeMillis()) {
-            if (ConfigCache.PREVENTION > 0) {
-                event.setCancelled(true);
-                if (ConfigCache.PREVENTION >= 3) {
-                    Bukkit.getScheduler().runTask(MX.getInstance(), () -> {
-                        player.teleport(player.getLocation());
-                    });
-                } else if (ConfigCache.PREVENTION == 1
-                                && attack
-                                && entity instanceof LivingEntity
-                                && player.getLocation().toVector().distance(entity.getLocation().toVector()) < 3.3) {
-                    final LivingEntity target = (LivingEntity) entity;
-                    Bukkit.getScheduler().runTask(MX.getInstance(), () -> {
-                        target.damage(0.5, player);
-                    });
+            boolean attack = interactPacket.location() == null;
+            int entityId = interactPacket.targetId();
+            Entity entity = EntityCache.get(entityId);
+
+            if (profile.getAttackBlockToTime() > System.currentTimeMillis()) {
+                if (ConfigCache.PREVENTION > 0) {
+                    if (ConfigCache.PREVENTION >= 3) {
+                        player.teleport(player.getPosition());
+                    } else if (ConfigCache.PREVENTION == 1
+                            && attack
+                            && entity instanceof LivingEntity target) {
+                        double distance = player.getPosition().distance(entity.getPosition());
+                        if (distance < 3.3) {
+                            target.damage(Damage.fromEntity(player, 0.5f));
+                        }
+                    }
+                    profile.debug("UseEntity packet blocked");
+                    MX.blockedPerMinuteCount++;
                 }
-                profile.debug("UseEntity packet blocked");
-                MX.blockedPerMinuteCount++;
             }
-        }
-        UseEntityEvent e = new UseEntityEvent(entity, attack, entityId, false);
-        profile.run(e);
-        if (e.isCancelled()) {
-            event.setCancelled(true);
-            profile.debug("UseEntity packet blocked after checking");
-            MX.blockedPerMinuteCount++;
-        }
+
+            UseEntityEvent e = new UseEntityEvent(entity, attack, entityId, false);
+            profile.run(e);
+        });
     }
 }

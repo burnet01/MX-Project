@@ -48,7 +48,7 @@ public final class AimInvalidCheck implements HeuristicComponent {
                 profile.setAttackBlockToTime(System.currentTimeMillis() + blockTime);
             }
         } else buffer--;
-        if (profile.getTo().getPitch() > INVALID_PITCH) {
+        if (profile.getTo().pitch() > INVALID_PITCH) {
             profile.punish("Aim", "Invalid", "Unlimited Pitch " + event.getDelta().getY(), vl);
             profile.setAttackBlockToTime(System.currentTimeMillis() + blockTime);
         }

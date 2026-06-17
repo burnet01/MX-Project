@@ -13,7 +13,7 @@ public final class LogUtils {
     private static final File LOGS_FOLDER;
 
     static {
-        LOGS_FOLDER = new File(MX.getInstance().getDataFolder(), "logs");
+        LOGS_FOLDER = new File(MX.getDataFolder(), "logs");
         if (!LOGS_FOLDER.exists()) {
             LOGS_FOLDER.mkdirs();
         }

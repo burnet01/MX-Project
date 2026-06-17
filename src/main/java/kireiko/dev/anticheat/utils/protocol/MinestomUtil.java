@@ -1,13 +1,13 @@
 package kireiko.dev.anticheat.utils.protocol;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.Player;
 
-import java.util.Random;
 import java.util.UUID;
 
-public final class ProtocolLib {
+public final class MinestomUtil {
 
     public static UUID getUUID(Entity entity) {
         if (entity instanceof Player player) {

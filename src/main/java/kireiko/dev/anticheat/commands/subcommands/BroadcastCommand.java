@@ -1,13 +1,11 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.commands.MXSubCommand;
 import kireiko.dev.anticheat.utils.ConfigCache;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.entity.Player;
 
 import java.util.List;
 
@@ -26,7 +24,7 @@ public final class BroadcastCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " " + getName() + " <message>";
+        return "/mx bc <message>";
     }
 
     @Override
@@ -45,13 +43,13 @@ public final class BroadcastCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         StringBuilder total = new StringBuilder();
         for (String arg : args) {
             total.append(" ").append(arg);
         }
         String totalMessage = wrapColors(ConfigCache.BC_MSG.replace("%message%", total.toString().trim()));
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
             player.sendMessage(totalMessage);
         }
         return true;
@@ -59,7 +57,6 @@ public final class BroadcastCommand extends MXSubCommand {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
-        return ImmutableList.of();
+        return List.of();
     }
-
 }

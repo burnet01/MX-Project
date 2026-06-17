@@ -20,6 +20,7 @@ import kireiko.dev.millennium.vectors.Vec2f;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import net.kyori.adventure.text.Component;
 
 public final class AimMLCheck implements PacketCheckHandler {
 
@@ -68,7 +69,7 @@ public final class AimMLCheck implements PacketCheckHandler {
             RotationEvent event = (RotationEvent) o;
 
             if (System.currentTimeMillis() > this.lastAttack + 3000) {
-                if (!this.rawRotations.isEmpty() && !RECORDING.containsKey(profile.getPlayer().getUniqueId())) {
+                if (!this.rawRotations.isEmpty() && !RECORDING.containsKey(profile.getPlayer().getUuid())) {
                     this.rawRotations.clear();
                     this.rnnRotations.clear();
                 }
@@ -79,10 +80,10 @@ public final class AimMLCheck implements PacketCheckHandler {
             this.rawRotations.add(delta);
             this.rnnRotations.add(delta);
 
-            if (TEST_MODE && !RECORDING.containsKey(profile.getPlayer().getUniqueId())) {
-                profile.getPlayer().sendActionBar("§aChecking: " + this.rawRotations.size() + "/600 | RNN: " + this.rnnRotations.size() + "/150");
-            } else if (RECORDING.containsKey(profile.getPlayer().getUniqueId())) {
-                profile.getPlayer().sendActionBar("§cRECORDING: " + this.rawRotations.size() + "/600");
+            if (TEST_MODE && !RECORDING.containsKey(profile.getPlayer().getUuid())) {
+                profile.getPlayer().sendActionBar(Component.text("§aChecking: " + this.rawRotations.size() + "/600 | RNN: " + this.rnnRotations.size() + "/150"));
+            } else if (RECORDING.containsKey(profile.getPlayer().getUuid())) {
+                profile.getPlayer().sendActionBar(Component.text("§cRECORDING: " + this.rawRotations.size() + "/600"));
             }
 
             if (this.rnnRotations.size() >= 150) {
@@ -139,7 +140,7 @@ public final class AimMLCheck implements PacketCheckHandler {
         objectMLStack.add(yaw);
         objectMLStack.add(pitch);
 
-        Boolean recordType = RECORDING.get(profile.getPlayer().getUniqueId());
+        Boolean recordType = RECORDING.get(profile.getPlayer().getUuid());
 
         if (recordType != null) {
             AsyncScheduler.run(() -> {
@@ -190,7 +191,7 @@ public final class AimMLCheck implements PacketCheckHandler {
         objectMLStack.add(yaw);
         objectMLStack.add(pitch);
 
-        if (!RECORDING.containsKey(profile.getPlayer().getUniqueId())) {
+        if (!RECORDING.containsKey(profile.getPlayer().getUuid())) {
             AsyncScheduler.run(() -> {
                 ModuleResultML finalModuleResult = new ModuleResultML(0, FlagType.NORMAL, null);
                 final Set<String> modelsThatFlagged = new HashSet<>();

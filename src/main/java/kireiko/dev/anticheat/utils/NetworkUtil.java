@@ -8,11 +8,12 @@ import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
-
 
 public class NetworkUtil {
     private static final String apiUrl = "https://paste.mineland.net/documents";
+
     @SneakyThrows
     public static String createPaste(final String textToPaste) {
         final String userAgent = "MX/1.0 (Anti-Cheat service)";
@@ -35,7 +36,7 @@ public class NetworkUtil {
                 pasteLink = "https://paste.mineland.net/" + response.split("\"")[3];
             }
         } else {
-            MX.getInstance().getLogger().severe("Error while creating document: " + responseCode);
+            MX.getLogger().log(Level.SEVERE, "Error while creating document: " + responseCode);
         }
         connection.disconnect();
 

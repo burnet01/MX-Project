@@ -12,39 +12,37 @@ import kireiko.dev.millennium.math.RayTrace;
 import kireiko.dev.millennium.vectors.Vec2;
 import kireiko.dev.millennium.vectors.Vec3;
 import lombok.Data;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.util.Vector;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.particle.Particle;
+import net.minestom.server.entity.damage.Damage;
 
 import static kireiko.dev.anticheat.utils.protocol.ProtocolTools.getBlockAsync;
 
 @Data
 public final class Spell implements FunThing {
     private final PlayerProfile linked;
-    private final Location location;
+    private final Pos location;
     private final ParticleTypes effect, explosion;
     private double speed, damage;
     private boolean destroyed;
     private boolean optimizer3000;
-    private PotionEffect potionEffect;
     private int exist;
 
-    public Spell(final PlayerProfile linked, final Location location,
+    public Spell(final PlayerProfile linked, final Pos location,
                  final double speed, final double damage, final ParticleTypes effect,
-                 final ParticleTypes explosion, final PotionEffect potionEffect) {
+                 final ParticleTypes explosion, Object potionEffect) {
         this.linked = linked;
         this.location = location;
-        this.location.setWorld(linked.getPlayer().getWorld());
         this.destroyed = false;
         this.speed = speed;
         this.damage = damage;
         this.effect = effect;
         this.explosion = explosion;
         this.optimizer3000 = false;
-        this.potionEffect = potionEffect;
         this.exist = 0;
     }
 
@@ -52,58 +50,57 @@ public final class Spell implements FunThing {
     public void tick() {
         this.optimizer3000 = !optimizer3000;
         final double speed = getSpeed();
-        final float yaw = location.getYaw();
-        final float pitch = location.getPitch();
-        final Vector direction = new Vector(
+        final float yaw = (float) location.yaw();
+        final float pitch = (float) location.pitch();
+        final Vec direction = new Vec(
                 -GeneralMath.sin((float) Math.toRadians(yaw), BuildSpeed.FAST),
                 -GeneralMath.sin((float) Math.toRadians(pitch), BuildSpeed.FAST),
                 GeneralMath.cos((float) Math.toRadians(yaw), BuildSpeed.FAST));
         final double interpolatePitch = 1 - ((Math.abs(pitch) * 1.1111) / 100);
-        direction.setX(direction.getX() * interpolatePitch);
-        direction.setZ(direction.getZ() * interpolatePitch);
-        location.add(direction.multiply(speed));
+        double newX = direction.x() * interpolatePitch * speed;
+        double newZ = direction.z() * interpolatePitch * speed;
+
+        Pos newLoc = location.add(newX, 0, newZ);
         this.exist++;
         { // bound player
             final double hitbox = 0.4;
             for (PlayerProfile target : PlayerContainer.getUuidPlayerProfileMap().values()) {
-                if (target.getPlayer().getUniqueId().equals(linked.getPlayer().getUniqueId())) continue;
-                if (location.getWorld().equals(target.getPlayer().getWorld())
-                        && location.distance(target.getPlayer().getLocation()) < 5) {
-                    double x = target.getTo().getX(),
-                            y = target.getTo().getY(),
-                            z = target.getTo().getZ();
+                if (target.getPlayer().getUuid().equals(linked.getPlayer().getUuid())) continue;
+                Instance instance = linked.getPlayer().getInstance();
+                if (instance != null && linked.getPlayer().getInstance() == instance
+                        && location.distance(target.getPlayer().getPosition()) < 5) {
+                    double x = target.getTo().x(),
+                            y = target.getTo().y(),
+                            z = target.getTo().z();
                     if (RayTrace.doRayTrace(BuildSpeed.FAST,
-                            new Vec2(linked.getTo().getPitch(), linked.getTo().getYaw()), new Vec3(location.toVector()),
+                            new Vec2(linked.getTo().pitch(), linked.getTo().yaw()), new Vec3(location),
                             new AxisAlignedBB(
                                     x - hitbox, y - 0.1f, z - hitbox,
                                     x + hitbox, y + 1.9f, z + hitbox
                             ), speed + 0.4)) {
                         { // boom!
                             this.destroyed = true;
-                            Bukkit.getScheduler().runTask(MX.getInstance(), () -> {
-                                    Location attackerLoc = linked.getPlayer().getEyeLocation();
-                                    Vector attackDirection = attackerLoc.getDirection().normalize();
+                            MinecraftServer.getSchedulerManager().buildTask(() -> {
+                                Pos attackerLoc = linked.getPlayer().getPosition();
+                                Vec attackDirection = linked.getPlayer().getPosition().direction();
 
-                                    Vector horizontalKnockback = new Vector(
-                                            -attackDirection.getX(),
-                                            0,
-                                            -attackDirection.getZ()
-                                    ).normalize();
+                                Vec horizontalKnockback = new Vec(
+                                        -attackDirection.x(),
+                                        0,
+                                        -attackDirection.z()
+                                ).normalize();
 
-                                    double vertical = 0.35 * (1 + (exist / 1200.0));
-                                    double horizontal = -0.45;
+                                double vertical = 0.35 * (1 + (exist / 1200.0));
+                                double horizontal = -0.45;
 
-                                    Vector velocity = horizontalKnockback
-                                            .multiply(horizontal)
-                                            .setY(vertical);
+                                Vec velocity = horizontalKnockback
+                                        .mul(horizontal)
+                                        .withY(vertical);
 
-                                    target.getPlayer().setVelocity(velocity);
-                                    target.getPlayer().damage(damage); // XD
-                                });
-                            ParticleHelper.spawn(location.getWorld(), explosion, location, 1, 0, 0, 0, 0);
-                            if (potionEffect != null)
-                                Bukkit.getScheduler().runTask(MX.getInstance(),
-                                        () -> target.getPlayer().addPotionEffect(potionEffect));
+                                target.getPlayer().setVelocity(velocity);
+                                target.getPlayer().damage(Damage.fromEntity(linked.getPlayer(), (float) damage));
+                            }).schedule();
+                            ParticleHelper.spawn(linked.getPlayer().getInstance(), Particle.EXPLOSION, location, 1);
                             break;
                         }
                     }
@@ -111,27 +108,26 @@ public final class Spell implements FunThing {
             }
         }
         { // bound block
-            double x = location.getX(),
-                    y = location.getY(),
-                    z = location.getZ();
+            double x = location.x();
+            double y = location.y();
+            double z = location.z();
 
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    for (int dz = -1; dz <= 1; dz++) {
-                        final Block block = getBlockAsync(
-                                new Location(
-                                        this.linked.getPlayer().getWorld(),
-                                        x + (dx * 0.3),
-                                        y + (dy * 0.3),
-                                        z + (dz * 0.3)
-                                )
-                        );
-                        if (block == null) continue;
-                        final Material material = block.getType();
-                        if (!material.toString().contains("AIR")) {
-                            destroyed = true;
-                            ParticleHelper.spawn(location.getWorld(), explosion, location, 5);
-                            break;
+            Instance instance = linked.getPlayer().getInstance();
+            if (instance != null) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            Block block = getBlockAsync(instance,
+                                    (int) (x + (dx * 0.3)),
+                                    (int) (y + (dy * 0.3)),
+                                    (int) (z + (dz * 0.3))
+                            );
+                            if (block == null) continue;
+                            if (!block.compare(Block.AIR)) {
+                                destroyed = true;
+                                ParticleHelper.spawn(linked.getPlayer().getInstance(), Particle.EXPLOSION, location, 5);
+                                break;
+                            }
                         }
                     }
                 }
@@ -139,7 +135,7 @@ public final class Spell implements FunThing {
         }
 
         if (optimizer3000) { // animation
-            ParticleHelper.spawn(location.getWorld(), effect, location, 1, 0, 0, 0, 0);
+            ParticleHelper.spawn(linked.getPlayer().getInstance(), Particle.FLAME, location, 1);
         }
         if (exist > 1200) destroyed = true;
     }

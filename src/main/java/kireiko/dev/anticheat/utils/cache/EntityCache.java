@@ -1,18 +1,11 @@
 package kireiko.dev.anticheat.utils.cache;
 
-import org.bukkit.entity.Entity;
+import net.minestom.server.entity.Entity;
 
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Global entity-id → Entity cache. Bukkit assigns entity IDs from a single static
- * counter, so they are unique across all worlds — a flat map is enough.
- *
- * <p>Lookups are O(1) and lock-free. Populated proactively from Bukkit spawn
- * events (no packet interception), so first-attack latency is zero.
- */
 public final class EntityCache {
 
     private EntityCache() {}

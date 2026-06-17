@@ -8,15 +8,15 @@ import kireiko.dev.anticheat.managers.CheckManager;
 import kireiko.dev.anticheat.services.AnimatedPunishService;
 import kireiko.dev.anticheat.utils.ConfigCache;
 import kireiko.dev.anticheat.utils.MessageUtils;
-import kireiko.dev.anticheat.utils.protocol.ProtocolLib;
 import kireiko.dev.millennium.math.Statistics;
 import kireiko.dev.millennium.types.EvictingList;
 import kireiko.dev.millennium.vectors.Pair;
 import lombok.Data;
 import lombok.SneakyThrows;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.Player;
 
 import java.util.*;
 
@@ -25,7 +25,7 @@ public final class PlayerProfile {
 
     private final Player player;
     private final Set<PacketCheckHandler> checks = new HashSet<>();
-    private final List<Location> pastLoc = new EvictingList<>(20);
+    private final List<Pos> pastLoc = new EvictingList<>(20);
     private final List<Long> ping = new EvictingList<>(10);
     private final List<Integer> sensitivity = new EvictingList<>(14);
     private final SensitivityProcessor sensitivityProcessor = new SensitivityProcessor(this);
@@ -38,31 +38,27 @@ public final class PlayerProfile {
     public int airTicks, flagCount, punishAnimation, teleportTicks;
     public boolean sneaking = false, sprinting = false, ground = false;
     private boolean cinematic = false;
-    private Location to;
-    private Location from;
+    private Pos to;
+    private Pos from;
     private float vl;
     private long attackBlockToTime, lastTeleport = 0;
     private boolean alerts, debug, ignoreExitBan, ignoreFirstTick = true;
     private Pair<String, String> banAnimInfo;
-    private Pair<Location, Location> banAnimPositions;
-    private final Object instance;
+    private Pair<Pos, Pos> banAnimPositions;
 
     public PlayerProfile(Player player) {
         this.player = player;
-        this.to = this.from = player.getLocation();
-        this.instance = this;
+        this.to = this.from = player.getPosition();
     }
 
     public void punish(final String check, final String component, final String info, final float m) {
         if (!ConfigCache.BYPASS.equalsIgnoreCase("none")
-                && this.player.hasPermission(ConfigCache.BYPASS)) {
+                && this.player.getPermissionLevel() >= 1) {
             return;
         }
-        // this.vl += 10.0f * m;
         final float tempVl = this.vl + 10.0f * m;
         final double vlLimit = ConfigCache.VL_LIMIT;
         MXFlagEvent event = new MXFlagEvent(this.player, check, component, info, tempVl, vlLimit);
-        Bukkit.getPluginManager().callEvent(event); // forget to call event?
         if (event.isCancelled()) {
             return;
         }
@@ -75,7 +71,7 @@ public final class PlayerProfile {
         MessageUtils.sendMessagesToPlayers(MX.permission, builder);
         if (ConfigCache.LOG_IN_FILES) {
             logs.add("[" + MessageUtils.getDate() + "] "
-                    + this.getPlayer().getName()
+                    + this.getPlayer().getUsername()
                     + " >> " + check + " (" + component + ") " + info + " ["
                     + ((int) this.vl) + "/"
                     + ConfigCache.VL_LIMIT
@@ -126,7 +122,7 @@ public final class PlayerProfile {
     }
 
     private String wrapString(String v) {
-        return MessageUtils.wrapColors(v.replace("%player%", this.getPlayer().getName())
+        return MessageUtils.wrapColors(v.replace("%player%", this.getPlayer().getUsername())
                 .replace("%vl%", String.valueOf(this.vl))
                 .replace("%vlLimit%", String.valueOf(ConfigCache.VL_LIMIT))
         );
@@ -150,13 +146,13 @@ public final class PlayerProfile {
         MX.bannedPerMinuteCount++;
         this.ignoreExitBan = true;
         this.vl = 0;
-        Bukkit.getScheduler().runTask(MX.getInstance(), () -> {
+        MinecraftServer.getSchedulerManager().buildTask(() -> {
             String banMsg = this.wrapString(ConfigCache.BAN_COMMAND
                     .replace("%check%", check)
                     .replace("%info%", info));
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), banMsg);
+            MinecraftServer.getCommandManager().executeServerCommand(banMsg);
             this.setBanAnimInfo(null);
-        });
+        }).schedule();
     }
 
     public void debug(String msg) {
@@ -167,16 +163,14 @@ public final class PlayerProfile {
     public void setAttackBlockToTime(long time) {
         if (time < System.currentTimeMillis() + 10) return;
         if (!ConfigCache.BYPASS.equalsIgnoreCase("none")
-                && this.player.hasPermission(ConfigCache.BYPASS)) {
+                && this.player.getPermissionLevel() >= 1) {
             return;
         }
         this.attackBlockToTime = time;
     }
 
     public int getEntityId() {
-        return ProtocolLib.isTemporary(this.getPlayer())
-                ? new Random().nextInt()
-                : this.getPlayer().getEntityId();
+        return this.getPlayer().getEntityId();
     }
 
     public int calculateSensitivity() {
@@ -192,10 +186,14 @@ public final class PlayerProfile {
         }
         return -1;
     }
-    @Override public int hashCode() {
+
+    @Override
+    public int hashCode() {
         return System.identityHashCode(this);
     }
-    @Override public boolean equals(Object o) {
+
+    @Override
+    public boolean equals(Object o) {
         return this == o;
     }
 }

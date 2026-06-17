@@ -1,12 +1,10 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.commands.MXSubCommand;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
 
 import java.util.List;
 
@@ -23,7 +21,7 @@ public final class PunishCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " " + getName() + " <player>";
+        return "/mx punish <player>";
     }
 
     @Override
@@ -42,7 +40,7 @@ public final class PunishCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         PlayerProfile playerProfile = PlayerContainer.getProfileByName(args[0]);
         if (playerProfile == null) {
             sender.sendMessage("§cPlayer not found... Sorry!");
@@ -56,6 +54,6 @@ public final class PunishCommand extends MXSubCommand {
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         if (args.length == 1) return null;
-        return ImmutableList.of(); // return empty list
+        return List.of();
     }
 }

@@ -1,28 +1,12 @@
 package kireiko.dev.anticheat.utils.version;
 
 import lombok.Getter;
-import org.bukkit.Bukkit;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import net.minestom.server.MinecraftServer;
 
 public final class VersionUtil {
 
-    private static final Pattern VERSION_PATTERN = Pattern.compile("MC: ([0-9]+(?:\\.[0-9]+)+)");
     @Getter
-    private static final String version = extractVersion(Bukkit.getVersion());
-
-    private static String extractVersion(String fullVersion) {
-        Matcher matcher = VERSION_PATTERN.matcher(fullVersion);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return "unknown";
-    }
-
-    public static String getBukkitVersion() {
-        return Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-    }
+    private static final String version = MinecraftServer.VERSION_NAME;
 
     public static boolean is1_8() {
         return version.startsWith("1.8");

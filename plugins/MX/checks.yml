@@ -1,0 +1,53 @@
+aim_heuristic:
+  constant_check: {constant(1)_needVl=8, constant(2)_needVl=6, constant(3)_needVl=6}
+  smooth_check: {addGlobalVl=35}
+  pattern_check: {addGlobalVl=20, buffer=2.5, buffer_fade=0.3, hitCancelTimeMS=5000}
+  factor_check: {addGlobalVl=25, buffer=3.0, ticksToReset=2500}
+  invalid_check: {addGlobalVl=100, hitCancelTimeMS=0}
+  inconsistent_check: {addGlobalVl=0, buffer=2, hitCancelTimeMS=4000}
+  basic_component: {addGlobalVl(component)=0, addGlobalVl(interpolation)=0, heuristic(aggressive)_addLocalVl=50, heuristic(aim)_addLocalVl=100, heuristic(constant)_addLocalVl=65, heuristic(interpolation)_addLocalVl=55, heuristic(sync)_addLocalVl=125, hitCancelTimeMS(component)=3500, hitCancelTimeMS(interpolation)=2500, localVl_fade(component)=5, localVl_fade(interpolation)=5, localVl_limit(component)=400, localVl_limit(interpolation)=400, pattern(random)_addLocalVl=25, pattern(snap)_addLocalVl=55, randomizer_flaw_addVl=25}
+sprint:
+  addGlobalVl: 25
+  buffer: 40
+velocity:
+  enabled: false
+  buffer: 6
+auto_clicker:
+  addGlobalVl: 20
+  enabled: false
+aim_ml:
+  unusual_vl: 10
+  strange_vl: 20
+  enabled: true
+  suspected_vl: 40
+ghost_block_abuse:
+  enabled: false
+aim_complex:
+  addGlobalVl(entropy): 0
+  localVlLimit(randomizer): 2.5
+  addGlobalVl(distinct): 5
+  hitCancelTimeMS(distinct): 3000
+  hitCancelTimeMS(randomizer): 0
+  addGlobalVl(randomizer): 35
+  localVlLimit(distinct): 4.0
+  hitCancelTimeMS(entropy): 5000
+  localVlLimit(entropy): 30
+baritone:
+  enabled: false
+aim_statistics:
+  hitCancelTimeMS(iqr): 0
+  addGlobalVl(improbable): 30
+  hitCancelTimeMS(improbable): 4000
+  hitCancelTimeMS(bot_pattern): 0
+  localVlLimit(zfactor): 7.0
+  localVlLimit(iqr): 11.0
+  addGlobalVl(bot_pattern): 35
+  addGlobalVl(zfactor): 0
+  addGlobalVl(iqr): 25
+  hitCancelTimeMS(zfactor): 5500
+  localVlLimit(improbable): 15.0
+aim_analysis:
+  addGlobalVl(linear): 35
+  addGlobalVl(longterm): 55
+  localVlLimit(rank): 6.0
+  addGlobalVl(rank): 20

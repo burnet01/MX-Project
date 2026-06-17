@@ -10,9 +10,10 @@ import kireiko.dev.anticheat.managers.CheckManager;
 import kireiko.dev.anticheat.services.SimulationFlagService;
 import kireiko.dev.anticheat.utils.ConfigCache;
 import kireiko.dev.millennium.math.Simplification;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.util.Vector;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -27,8 +28,8 @@ public final class VelocityCheck implements PacketCheckHandler {
     private double mostCloseYMotion = 1.0;
     private int timing = 0;
     private boolean transactionLock = false;
-    private Vector velocity = null;
-    private Location from = null;
+    private Vec velocity = null;
+    private Pos from = null;
     private boolean isOnGroundFrom = false;
     private Map<String, Object> localCfg = new TreeMap<>();
 
@@ -38,6 +39,7 @@ public final class VelocityCheck implements PacketCheckHandler {
         localCfg.put("buffer", 6);
         return new ConfigLabel("velocity", localCfg);
     }
+
     @Override
     public void applyConfig(Map<String, Object> params) {
         localCfg = params;
@@ -47,7 +49,6 @@ public final class VelocityCheck implements PacketCheckHandler {
     public Map<String, Object> getConfig() {
         return localCfg;
     }
-
 
     public VelocityCheck(PlayerProfile profile) {
         this.profile = profile;
@@ -70,14 +71,11 @@ public final class VelocityCheck implements PacketCheckHandler {
     @Override
     public void event(Object o) {
         if (!(boolean) localCfg.get("enabled")) return;
-        if (o instanceof SVelocityEvent) {
-            SVelocityEvent event = (SVelocityEvent) o;
+        if (o instanceof SVelocityEvent event) {
             this.totalVlAtY = 25;
-            this.from = profile.getTo().clone();
+            this.from = profile.getTo();
             this.applyVelocity(event);
-            //profile.getPlayer().sendMessage("v; " + event.getVelocity());
-        } else if (o instanceof MoveEvent) {
-            MoveEvent event = (MoveEvent) o;
+        } else if (o instanceof MoveEvent event) {
             checkVelocity(event);
             this.isOnGroundFrom = profile.isGround();
         } else if (o instanceof CTransactionEvent) {
@@ -87,12 +85,12 @@ public final class VelocityCheck implements PacketCheckHandler {
 
     private void applyVelocity(SVelocityEvent event) {
         transactionLock = true;
-        Location[] locationsToCheck = {
-                this.profile.getTo().clone().add(event.getVelocity()),
-                this.profile.getTo().clone().add(event.getVelocity()).add(0, 1, 0)
+        Pos[] locationsToCheck = {
+                this.profile.getTo().add(event.getVelocity()),
+                this.profile.getTo().add(event.getVelocity()).add(0, 1, 0)
         };
         boolean allClear = true;
-        for (Location loc : locationsToCheck) {
+        for (Pos loc : locationsToCheck) {
             if (isPointWall(loc, 0.3)) {
                 allClear = false;
                 break;
@@ -108,32 +106,27 @@ public final class VelocityCheck implements PacketCheckHandler {
 
     private void checkVelocity(MoveEvent event) {
         final long delay = System.currentTimeMillis() - oldTime;
-        Location from = event.getFrom();
-        Location to = event.getTo();
+        Pos from = event.getFrom();
+        Pos to = event.getTo();
 
-        if (isPointWall(to.clone().add(0, 1, 0), 0.75)) {
+        if (isPointWall(to.add(0, 1, 0), 0.75)) {
             velocity = null;
         }
 
-        final double x = -(to.getX() - from.getX());
-        final double y = -(to.getY() - from.getY());
-        final double z = -(to.getZ() - from.getZ());
+        final double x = -(to.x() - from.x());
+        final double y = -(to.y() - from.y());
+        final double z = -(to.z() - from.z());
 
-        //this.protocol.bukkit().sendMessage("m: " + y);
         if (velocity != null) {
-            if (abs(abs(y) - abs(velocity.getY())) < mostCloseYMotion)
+            if (abs(abs(y) - abs(velocity.y())) < mostCloseYMotion)
                 mostCloseYMotion = y;
-            // time for vertical
-            //this.profile.getPlayer().sendMessage("m: " + y);
-            if (abs(abs(y) - abs(velocity.getY())) < 0.005) {
+            if (abs(abs(y) - abs(velocity.y())) < 0.005) {
                 { // time for horizontal
-                    double xDiff = x - velocity.getX();
-                    double zDiff = z - velocity.getZ();
-                    //this.profile.getPlayer().sendMessage("m: " + x + " " + velocity.getX());
+                    double xDiff = x - velocity.x();
+                    double zDiff = z - velocity.z();
                     double total = abs(xDiff) + abs(zDiff);
                     double multi = 1.0;
                     if ((!this.profile.isGround() && isOnGroundFrom)) {
-                        // time for horizontal flag
                         if (total > 0.2 * multi) {
                             this.flag("Velocity", "Horizontal", "[Air] " + total, 0.0f, 14);
                         }
@@ -141,7 +134,6 @@ public final class VelocityCheck implements PacketCheckHandler {
                         this.flag("Velocity", "Horizontal", "[Ground] " + total, 0.0f, 30);
                     }
                 }
-                //this.protocol.bukkit().sendMessage(x + " " + velocity.getX() + " | " + z + " " + velocity.getZ());
                 this.velocity = null;
                 this.timing = 0;
             } else if (delay > 25) {
@@ -149,9 +141,8 @@ public final class VelocityCheck implements PacketCheckHandler {
                 if (timing <= 3) {
                     if (!transactionLock) timing++;
                 } else {
-                    // time for vertical flag
-                    if (this.velocity.getY() != 0.003) {
-                        this.flag("Velocity", "Vertical", "diff=" + r(Math.abs(velocity.getY() - mostCloseYMotion))
+                    if (this.velocity.y() != 0.003) {
+                        this.flag("Velocity", "Vertical", "diff=" + r(Math.abs(velocity.y() - mostCloseYMotion))
                                 + ((totalVlAtY > 12) ? " [Basic]" : " [JumpReset]"), 0.0f, totalVlAtY);
                     }
                     this.velocity = null;
@@ -161,19 +152,23 @@ public final class VelocityCheck implements PacketCheckHandler {
         this.oldTime = System.currentTimeMillis();
     }
 
-    private boolean isPointWall(Location location, final double scale) {
-        final double x = location.getX();
-        final double y = location.getY() + 0.1;
-        final double z = location.getZ();
+    private boolean isPointWall(Pos location, final double scale) {
+        final double x = location.x();
+        final double y = location.y() + 0.1;
+        final double z = location.z();
+        Instance instance = profile.getPlayer().getInstance();
+        if (instance == null) return false;
+
         for (int dx = -1; dx <= 1; ++dx) {
             for (int dy = -1; dy <= 1; ++dy) {
                 for (int dz = -1; dz <= 1; ++dz) {
-                    final Material material = new Location(this.profile.getTo().getWorld(),
-                            x + (double) dx * scale,
-                            y + (double) dy * scale,
-                            z + (double) dz * scale).getBlock().getType();
+                    final Block block = instance.getBlock(
+                            (int) (x + (double) dx * scale),
+                            (int) (y + (double) dy * scale),
+                            (int) (z + (double) dz * scale)
+                    );
 
-                    if (material.isSolid() || ignore(material.toString().toLowerCase()) || material.toString().contains("GRASS")) {
+                    if (!block.compare(Block.AIR) || ignore(block.name().toLowerCase()) || block.name().contains("GRASS")) {
                         return true;
                     }
                 }

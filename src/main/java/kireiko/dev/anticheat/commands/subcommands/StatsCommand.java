@@ -1,11 +1,9 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.commands.MXSubCommand;
 import kireiko.dev.millennium.math.Statistics;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
 
 import java.util.List;
 
@@ -37,7 +35,7 @@ public final class StatsCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         int banCount = 0, blockCount = 0;
         for (int i : MX.bannedPerMinuteList) {
             banCount += i;
@@ -57,6 +55,6 @@ public final class StatsCommand extends MXSubCommand {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
-        return ImmutableList.of();
+        return List.of();
     }
 }

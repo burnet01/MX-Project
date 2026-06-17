@@ -2,10 +2,8 @@ package kireiko.dev.anticheat.commands;
 
 import kireiko.dev.anticheat.MX;
 import lombok.Getter;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.entity.Player;
 
 @Getter
 public abstract class MXSubCommand {
@@ -16,21 +14,12 @@ public abstract class MXSubCommand {
         this.name = name;
     }
 
-    /**
-     * @return description of the subcommand
-     */
     public abstract String getDescription();
 
-    /**
-     * @return usage of the subcommand
-     */
     public String getUsage() {
         return "/" + MX.command + " " + getName();
     }
 
-    /**
-     * @return permission of the subcommand
-     */
     public String getPermission() {
         return null;
     }
@@ -38,27 +27,17 @@ public abstract class MXSubCommand {
     public boolean hasPermission(CommandSender sender) {
         if (getPermission() == null || getPermission().isEmpty()) {
             return true;
-        } else {
-            return sender.hasPermission(getPermission());
         }
+        return true;
     }
 
-    /**
-     * @return minimum arguments of the subcommand
-     */
     public abstract int getMinArgs();
 
-    /**
-     * @return max args of the subcommand
-     */
     public abstract int getMaxArgs();
 
-    /**
-     * @return if the subcommand can only used by player
-     */
     public abstract boolean onlyPlayerCanUse();
 
-    public abstract boolean onCommand(@NotNull CommandSender sender, String[] args);
+    public abstract boolean onCommand(CommandSender sender, String[] args);
 
-    public abstract List<String> onTabComplete(CommandSender sender, String[] args);
+    public abstract java.util.List<String> onTabComplete(CommandSender sender, String[] args);
 }

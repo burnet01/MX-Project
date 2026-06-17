@@ -1,15 +1,13 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
-import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.commands.MXSubCommand;
 import kireiko.dev.millennium.math.Simplification;
 import kireiko.dev.millennium.math.Statistics;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minestom.server.command.CommandSender;
 
 import java.util.List;
 
@@ -27,7 +25,7 @@ public final class InfoCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " " + getName() + " <player>";
+        return "/mx info <player>";
     }
 
     @Override
@@ -46,24 +44,24 @@ public final class InfoCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         PlayerProfile playerProfile = PlayerContainer.getProfileByName(args[0]);
         if (playerProfile == null) {
-            sender.sendMessage("§cPlayer not found... Sorry!");
+            sender.sendMessage(Component.text("Player not found... Sorry!", NamedTextColor.RED));
             return true;
         }
         String sens = wrapColors("&4Not enough info!");
         final int calculated = playerProfile.calculateSensitivity();
         if (calculated > -1) {
-            sens = ChatColor.BLUE.toString() + calculated;
+            sens = NamedTextColor.BLUE.toString() + calculated;
         }
         StringBuilder pingLabel = new StringBuilder();
         String delimiter = "";
         for (long ping : playerProfile.getPing()) {
-            ChatColor color = getColorForPing(ping);
+            NamedTextColor color = getColorForPing(ping);
             pingLabel.append(delimiter).append(color.toString()).append(ping);
             if (delimiter.isEmpty()) {
-                delimiter = ChatColor.WHITE + ", ";
+                delimiter = NamedTextColor.WHITE + ", ";
             }
         }
         final String[] info = new String[]{
@@ -82,16 +80,16 @@ public final class InfoCommand extends MXSubCommand {
         return true;
     }
 
-    private ChatColor getColorForPing(long ping) {
-        if (ping > 1000) return ChatColor.DARK_RED;
-        if (ping > 300) return ChatColor.RED;
-        if (ping > 100) return ChatColor.YELLOW;
-        return ChatColor.GREEN;
+    private NamedTextColor getColorForPing(long ping) {
+        if (ping > 1000) return NamedTextColor.DARK_RED;
+        if (ping > 300) return NamedTextColor.RED;
+        if (ping > 100) return NamedTextColor.YELLOW;
+        return NamedTextColor.GREEN;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         if (args.length == 1) return null;
-        return ImmutableList.of(); // return empty list
+        return List.of();
     }
 }

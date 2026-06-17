@@ -7,7 +7,7 @@ import kireiko.dev.anticheat.api.events.UseEntityEvent;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.listeners.EntityActionListener;
 import kireiko.dev.anticheat.managers.CheckManager;
-import org.bukkit.entity.Player;
+import net.minestom.server.entity.Player;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -18,6 +18,7 @@ public class SprintCheck implements PacketCheckHandler {
     private int zeros;
     private boolean stab;
     private Map<String, Object> localCfg = new TreeMap<>();
+
     public SprintCheck(PlayerProfile profile) {
         this.profile = profile;
         this.lastAction = System.currentTimeMillis();
@@ -34,6 +35,7 @@ public class SprintCheck implements PacketCheckHandler {
         localCfg.put("addGlobalVl", 25);
         return new ConfigLabel("sprint", localCfg);
     }
+
     @Override
     public void applyConfig(Map<String, Object> params) {
         localCfg = params;
@@ -46,13 +48,12 @@ public class SprintCheck implements PacketCheckHandler {
 
     @Override
     public void event(Object o) {
-        if (o instanceof EntityActionEvent) {
-            EntityActionEvent event = (EntityActionEvent) o;
+        if (o instanceof EntityActionEvent event) {
             if (event.getAbilitiesEnum() == null) return;
             if (event.getAbilitiesEnum()
-                            .equals(EntityActionListener.AbilitiesEnum.START_SPRINTING)
-                            || event.getAbilitiesEnum().equals(EntityActionListener
-                            .AbilitiesEnum.STOP_SPRINTING)) {
+                    .equals(EntityActionListener.AbilitiesEnum.START_SPRINTING)
+                    || event.getAbilitiesEnum().equals(EntityActionListener
+                    .AbilitiesEnum.STOP_SPRINTING)) {
                 final long dev = System.currentTimeMillis() - this.lastAction;
                 this.lastAction = System.currentTimeMillis();
                 if (activeTo < System.currentTimeMillis()) return;
@@ -60,12 +61,8 @@ public class SprintCheck implements PacketCheckHandler {
                     this.zeros += 11;
                     this.stab = true;
                     if (this.zeros > ((Number) localCfg.get("buffer")).intValue()) {
-                        /*
-                        Goofy KillAura Zero's flaw
-                        Detect invalid sprint deviation
-                         */
                         profile.punish("Sprint", "Invalid", "[Flaw] Zero's sprint",
-                                        ((Number) localCfg.get("addGlobalVl")).floatValue() / 10f);
+                                ((Number) localCfg.get("addGlobalVl")).floatValue() / 10f);
                         this.zeros -= 6;
                     }
                 } else {
@@ -73,9 +70,7 @@ public class SprintCheck implements PacketCheckHandler {
                     if (this.zeros > 0) this.zeros--;
                 }
             }
-            //profile.getPlayer().sendMessage("action " + dev);
-        } else if (o instanceof UseEntityEvent) {
-            UseEntityEvent e = (UseEntityEvent) o;
+        } else if (o instanceof UseEntityEvent e) {
             if (e.isAttack() && e.getTarget() instanceof Player) {
                 this.activeTo = System.currentTimeMillis() + 3500;
                 if (this.zeros > 0) this.zeros -= 2;

@@ -2,7 +2,7 @@ package kireiko.dev.anticheat.api.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.bukkit.entity.Entity;
+import net.minestom.server.entity.Entity;
 
 @Data
 @AllArgsConstructor

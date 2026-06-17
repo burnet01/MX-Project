@@ -1,8 +1,5 @@
 package kireiko.dev.anticheat.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.*;
-import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.data.RotationsContainer;
 import kireiko.dev.anticheat.api.events.MoveEvent;
@@ -11,112 +8,74 @@ import kireiko.dev.anticheat.api.events.RotationEvent;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.api.player.SensitivityProcessor;
 import kireiko.dev.anticheat.utils.ConfigCache;
-import kireiko.dev.anticheat.utils.protocol.ProtocolLib;
-import kireiko.dev.anticheat.utils.protocol.ProtocolTools;
-import kireiko.dev.anticheat.utils.version.VersionUtil;
+import kireiko.dev.anticheat.utils.protocol.MinestomUtil;
 import kireiko.dev.millennium.vectors.Vec2f;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.player.PlayerMoveEvent;
+import net.minestom.server.event.entity.EntityTeleportEvent;
 
-import java.util.Arrays;
+public final class RawMovementListener {
 
-public final class RawMovementListener extends PacketAdapter {
-    public RawMovementListener() {
-        super(
-                MX.getInstance(),
-                ListenerPriority.LOWEST,
-                Arrays.asList(
-                        PacketType.Play.Server.POSITION,
-                        PacketType.Play.Client.POSITION,
-                        PacketType.Play.Client.POSITION_LOOK,
-                        PacketType.Play.Client.LOOK,
-                        VersionUtil.is1_17orAbove()
-                                ? PacketType.Play.Client.GROUND
-                                : PacketType.Play.Client.FLYING
-                ),
-                ListenerOptions.ASYNC
-        );
-    }
+    public static void register(GlobalEventHandler handler) {
+        handler.addListener(EntityTeleportEvent.class, event -> {
+            if (!(event.getEntity() instanceof net.minestom.server.entity.Player player)) return;
+            final PlayerProfile profile = PlayerContainer.getProfile(player);
+            if (profile == null) return;
+            profile.setLastTeleport(System.currentTimeMillis());
+            profile.setIgnoreFirstTick(true);
+        });
 
-    @Override
-    public void onPacketSending(PacketEvent event) {
-        final Player player = event.getPlayer();
-        final PlayerProfile profile = PlayerContainer.getProfile(player);
-        if (profile == null) {
-            return;
-        }
-        profile.setLastTeleport(System.currentTimeMillis());
-        profile.setIgnoreFirstTick(true);
-    }
+        handler.addListener(PlayerMoveEvent.class, event -> {
+            final PlayerProfile profile = PlayerContainer.getProfile(event.getPlayer());
+            if (profile == null) return;
 
-    @Override
-    public void onPacketReceiving(PacketEvent event) {
-        final Player player = event.getPlayer();
-        final PlayerProfile profile = PlayerContainer.getProfile(player);
-        if (profile == null) {
-            return;
-        }
-        profile.setGround(event.getPacket().getBooleans().read(0));
-        profile.setAirTicks((profile.isGround()) ? 0 : profile.getAirTicks() + 1);
-        final PacketContainer packet = event.getPacket();
-        profile.setFrom(profile.getTo().clone());
-        Location l = profile.getTo().clone();
-        boolean hasPosition = ProtocolTools.hasPosition(packet.getType());
-        boolean hasRotation = ProtocolTools.hasRotation(packet.getType());
-        if (hasPosition) {
-            Location r = ProtocolTools.readLocation(event);
-            if (r == null) return;
-            double[] v = new double[]{r.getX(), r.getY(), r.getZ()};
-            for (Double check : v)
-                if (check.isNaN() || check.isInfinite() || Math.abs(check) > 3E8) {
-                    return;
+            Pos from = profile.getTo() != null ? profile.getTo() : event.getPlayer().getPosition();
+            Pos to = event.getNewPosition();
+
+            profile.setGround(event.getPlayer().isOnGround());
+            profile.setAirTicks(profile.isGround() ? 0 : profile.getAirTicks() + 1);
+
+            profile.setFrom(profile.getTo() != null ? profile.getTo() : from);
+            profile.setTo(to);
+
+            boolean hasRotation = from.yaw() != to.yaw() || from.pitch() != to.pitch();
+
+            if (hasRotation) {
+                SensitivityProcessor controller = profile.getSensitivityProcessor();
+                controller.setLastDeltaPitch(controller.getLastDeltaPitch());
+                Vec2f fromRot = new Vec2f((float) from.yaw(), (float) from.pitch());
+                Vec2f toRot = new Vec2f((float) to.yaw(), (float) to.pitch());
+                RotationEvent rotationEvent = new RotationEvent(profile, toRot, fromRot);
+                controller.setDeltaPitch(rotationEvent.getDelta().getY());
+                controller.processSensitivity();
+                boolean isTeleporting = (System.currentTimeMillis() - profile.getLastTeleport() < 500) || profile.isIgnoreFirstTick();
+
+                if (ConfigCache.ROTATIONS_CONTAINER
+                        && !profile.isIgnoreFirstTick()
+                        && !isTeleporting) {
+                    RotationsContainer.register(MinestomUtil.getUUID(profile.getPlayer()), rotationEvent.getDelta());
                 }
-            l.setX(r.getX());
-            l.setY(r.getY());
-            l.setZ(r.getZ());
-        }
-        l.setWorld(ProtocolLib.getWorld(player));
-        if (hasRotation) {
-            for (Float check : Arrays.asList(packet.getFloat().read(0), packet.getFloat().read(1)))
-                if (check.isNaN() || check.isInfinite() || Math.abs(check) > 3E8) {
-                    return;
+
+                profile.getCinematicComponent().process(rotationEvent);
+                if (!isTeleporting) {
+                    profile.run(rotationEvent);
                 }
-            l.setYaw(packet.getFloat().read(0));
-            l.setPitch(packet.getFloat().read(1));
-        }
-        profile.setTo(l.clone());
-        if (hasRotation) {
-            SensitivityProcessor controller = profile.getSensitivityProcessor();
-            controller.setLastDeltaPitch(controller.getLastDeltaPitch());
-            Vec2f from = new Vec2f(profile.getFrom().getYaw(), profile.getFrom().getPitch());
-            Vec2f to = new Vec2f(profile.getTo().getYaw(), profile.getTo().getPitch());
-            RotationEvent rotationEvent = new RotationEvent(profile, to, from);
-            controller.setDeltaPitch(rotationEvent.getDelta().getY());
-            controller.processSensitivity();
-            boolean isTeleporting = (System.currentTimeMillis() - profile.getLastTeleport() < 500) || profile.isIgnoreFirstTick();
-
-            if (ConfigCache.ROTATIONS_CONTAINER
-                            && !profile.isIgnoreFirstTick()
-                            && !isTeleporting) {
-                RotationsContainer.register(ProtocolLib.getUUID(profile.getPlayer()), rotationEvent.getDelta());
-            }
-
-            profile.getCinematicComponent().process(rotationEvent);
-            if (!isTeleporting) {
-                profile.run(rotationEvent);
-            }
-            profile.setIgnoreFirstTick(false);
-        } else {
-            if (!profile.isIgnoreFirstTick() && profile.getLastTeleport() + 1000 < System.currentTimeMillis()) {
-                if (profile.getTo().toVector().distance(profile.getFrom().toVector()) > 1e-4) {
-                    profile.run(new NoRotationEvent(profile));
+                profile.setIgnoreFirstTick(false);
+            } else {
+                if (!profile.isIgnoreFirstTick() && profile.getLastTeleport() + 1000 < System.currentTimeMillis()) {
+                    if (profile.getTo() != null && profile.getFrom() != null) {
+                        double dist = profile.getTo().distance(profile.getFrom());
+                        if (dist > 1e-4) {
+                            profile.run(new NoRotationEvent(profile));
+                        }
+                    }
                 }
             }
-        }
 
-        profile.getPastLoc().add(profile.getTo());
-        profile.run(new MoveEvent(profile, profile.getTo(), profile.getFrom()));
+            profile.run(new MoveEvent(profile, profile.getTo(), profile.getFrom()));
 
-        if (profile.transactionBoot) LatencyHandler.startChecking(profile);
+            if (profile.transactionBoot) LatencyHandler.startChecking(profile);
+        });
     }
 }

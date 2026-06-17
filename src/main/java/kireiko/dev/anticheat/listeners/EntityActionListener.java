@@ -1,62 +1,44 @@
 package kireiko.dev.anticheat.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerOptions;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
-import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.events.EntityActionEvent;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
+import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.player.PlayerStartSneakingEvent;
+import net.minestom.server.event.player.PlayerStartSprintingEvent;
+import net.minestom.server.event.player.PlayerStopSneakingEvent;
+import net.minestom.server.event.player.PlayerStopSprintingEvent;
 
-import java.util.Collections;
+public final class EntityActionListener {
 
-public final class EntityActionListener extends PacketAdapter {
+    public static void register(GlobalEventHandler handler) {
+        handler.addListener(PlayerStartSprintingEvent.class, event -> {
+            PlayerProfile protocol = PlayerContainer.getProfile(event.getPlayer());
+            if (protocol == null) return;
+            protocol.sprinting = true;
+            protocol.run(new EntityActionEvent(AbilitiesEnum.START_SPRINTING));
+        });
 
-    public EntityActionListener() {
-        super(
-                MX.getInstance(),
-                ListenerPriority.HIGHEST,
-                Collections.singletonList(PacketType.Play.Client.ENTITY_ACTION),
-                ListenerOptions.ASYNC
-        );
-    }
+        handler.addListener(PlayerStopSprintingEvent.class, event -> {
+            PlayerProfile protocol = PlayerContainer.getProfile(event.getPlayer());
+            if (protocol == null) return;
+            protocol.sprinting = false;
+            protocol.run(new EntityActionEvent(AbilitiesEnum.STOP_SPRINTING));
+        });
 
-    @Override
-    public void onPacketReceiving(PacketEvent event) {
-        PlayerProfile protocol = PlayerContainer.getProfile(event.getPlayer());
-        if (protocol == null) {
-            return;
-        }
+        handler.addListener(PlayerStartSneakingEvent.class, event -> {
+            PlayerProfile protocol = PlayerContainer.getProfile(event.getPlayer());
+            if (protocol == null) return;
+            protocol.sneaking = true;
+            protocol.run(new EntityActionEvent(AbilitiesEnum.PRESS_SHIFT_KEY));
+        });
 
-        if (event.getPacket().getModifier().getValues().size() > 1) {
-            String typeString = event.getPacket().getModifier().getValues().get(1).toString();
-            AbilitiesEnum type = getEnum(typeString);
-
-            if (typeString != null) {
-                if (type == AbilitiesEnum.PRESS_SHIFT_KEY) {
-                    protocol.sneaking = true;
-                } else if (type == AbilitiesEnum.RELEASE_SHIFT_KEY) {
-                    protocol.sneaking = false;
-                } else if (type == AbilitiesEnum.START_SPRINTING) {
-                    protocol.sprinting = true;
-                } else if (type == AbilitiesEnum.STOP_SPRINTING) {
-                    protocol.sprinting = false;
-                }
-            }
-            EntityActionEvent e = new EntityActionEvent(type);
-            protocol.run(e);
-        }
-    }
-
-    private AbilitiesEnum getEnum(String s) {
-        for (AbilitiesEnum type : AbilitiesEnum.values()) {
-            if (type.toString().equals(s)) {
-                return type;
-            }
-        }
-        return null;
+        handler.addListener(PlayerStopSneakingEvent.class, event -> {
+            PlayerProfile protocol = PlayerContainer.getProfile(event.getPlayer());
+            if (protocol == null) return;
+            protocol.sneaking = false;
+            protocol.run(new EntityActionEvent(AbilitiesEnum.RELEASE_SHIFT_KEY));
+        });
     }
 
     public enum AbilitiesEnum {
@@ -65,5 +47,4 @@ public final class EntityActionListener extends PacketAdapter {
         PRESS_SHIFT_KEY,
         RELEASE_SHIFT_KEY
     }
-
 }

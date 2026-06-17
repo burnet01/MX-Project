@@ -8,8 +8,7 @@ import kireiko.dev.millennium.ml.logic.Millennium;
 import kireiko.dev.millennium.ml.logic.RNNModelML;
 import kireiko.dev.millennium.ml.logic.RNNModelML.InputMode;
 import kireiko.dev.millennium.ml.logic.RNNModelML.PoolingMode;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,12 +28,12 @@ public final class MLCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " ml <index> <param> <value> (Params: lr, dr, rdr, wd, gc, ls, th, im, pm)";
+        return "/mx ml <index> <param> <value>";
     }
 
     @Override
     public int getMinArgs() {
-        return 3; // <index> <param> <value>
+        return 3;
     }
 
     @Override
@@ -48,7 +47,7 @@ public final class MLCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         int index;
         try {
             index = Integer.parseInt(args[0]);

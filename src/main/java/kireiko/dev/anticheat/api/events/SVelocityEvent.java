@@ -1,13 +1,13 @@
 package kireiko.dev.anticheat.api.events;
 
 import lombok.Getter;
-import org.bukkit.util.Vector;
+import net.minestom.server.coordinate.Vec;
 
 @Getter
 public final class SVelocityEvent {
-    private final Vector velocity;
+    private final Vec velocity;
 
-    public SVelocityEvent(Vector velocity) {
+    public SVelocityEvent(Vec velocity) {
         this.velocity = velocity;
     }
 }

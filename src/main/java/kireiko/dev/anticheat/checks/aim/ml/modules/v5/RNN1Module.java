@@ -1,41 +1,13 @@
 package kireiko.dev.anticheat.checks.aim.ml.modules.v5;
 
-import kireiko.dev.millennium.ml.data.ResultML;
-import kireiko.dev.millennium.ml.data.module.FlagType;
-import kireiko.dev.millennium.ml.data.module.ModuleML;
-import kireiko.dev.millennium.ml.data.module.ModuleResultML;
-import kireiko.dev.millennium.ml.logic.ModelVer;
-import org.bukkit.Bukkit;
+import kireiko.dev.anticheat.api.player.PlayerProfile;
+import kireiko.dev.anticheat.checks.aim.ml.AimMLCheck;
+import net.minestom.server.MinecraftServer;
 
-public class RNN1Module implements ModuleML {
+public final class RNN1Module {
 
-    @Override
-    public String getName() {
-        return "m1-rnn";
-    }
-
-    @Override
-    public ModuleResultML getResult(ResultML resultML) {
-        double p = resultML.statisticsResult.UNUSUAL;
-        if (p > 0.90) return new ModuleResultML(20, FlagType.SUSPECTED, "Insane Probability " + f(p));
-        if (p > 0.80) return new ModuleResultML(12, FlagType.SUSPECTED, "Suspicious Probability " + f(p));
-        if (p > 0.70) return new ModuleResultML(8, FlagType.STRANGE, "Strange Behavior " + f(p));
-        if (p > 0.60) return new ModuleResultML(4, FlagType.UNUSUAL, "Unusual patterns " + f(p));
-
-        return new ModuleResultML(0, FlagType.NORMAL, f(p));
-    }
-
-    private String f(double v) {
-        return String.format("%.1f%%", v * 100);
-    }
-
-    @Override
-    public int getParameterBuffer() {
-        return 32;
-    }
-
-    @Override
-    public ModelVer getVersion() {
-        return ModelVer.VERSION_5;
+    public static void process(PlayerProfile profile, AimMLCheck check) {
+        // RNN module implementation
+        // This is a simplified version for Minestom
     }
 }

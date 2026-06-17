@@ -1,29 +1,26 @@
 package kireiko.dev.anticheat.commands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.commands.subcommands.*;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.command.builder.CommandContext;
+import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.entity.Player;
 
 import java.util.*;
 
-import static kireiko.dev.anticheat.utils.MessageUtils.wrapColors;
-
-public final class MXCommandHandler implements TabExecutor {
+public final class MXCommandHandler extends Command {
 
     private final Set<MXSubCommand> subCommands = new LinkedHashSet<>();
 
     public MXCommandHandler() {
+        super("mx");
         this.subCommands.add(new AlertCommand());
         this.subCommands.add(new LogCommand());
         this.subCommands.add(new BroadcastCommand());
@@ -37,142 +34,62 @@ public final class MXCommandHandler implements TabExecutor {
         this.subCommands.add(new MLCommand());
         this.subCommands.add(new DatasetCommand());
         this.subCommands.add(new TrainCommand());
-    }
 
-    @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        // check permission first
-        if (!commandSender.hasPermission(MX.permission)) {
-            commandSender.sendMessage("You don't have permission!");
-            return true;
-        }
-        if (!label.equalsIgnoreCase(MX.command)) {
-            commandSender.sendMessage("Usage: /" + MX.command);
-            return true;
-        }
+        setDefaultExecutor((sender, context) -> {
+            showHelps(sender);
+        });
 
-        if (args.length == 0) {
-            this.showHelps(commandSender);
-            return true;
-        }
-        String sCommand = args[0];
-        // get the sub command
-        for (MXSubCommand subCommand : subCommands) {
-            if (!subCommand.getName().equalsIgnoreCase(sCommand)) {
-                continue;
-            }
-            // check if the sub command can only be used by player
-            if (subCommand.onlyPlayerCanUse() && !(commandSender instanceof Player)) {
-                commandSender.sendMessage("This command can only be used by player!");
-                return true;
-            }
-            // check permission
-            if (!subCommand.hasPermission(commandSender)) {
-                commandSender.sendMessage("You don't have permission!");
-                return true;
-            }
-            String[] processedArgs = this.processArgs(args);
-            if (processedArgs.length > subCommand.getMaxArgs() || processedArgs.length < subCommand.getMinArgs()) {
-                commandSender.sendMessage("Usage: " + subCommand.getUsage());
-                return true;
-            }
-            return subCommand.onCommand(commandSender, processedArgs);
-        }
-        // if not found, just show help
-        this.showHelps(commandSender);
-        return true;
-    }
+        var subCommandArg = ArgumentType.StringArray("subcommand");
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        // check permission first
-        if (!commandSender.hasPermission(MX.permission)) {
-            return ImmutableList.of(); // return empty list
-        }
-        if (!label.equalsIgnoreCase(MX.command)) {
-            return ImmutableList.of();
-        }
-        if (args.length == 1) {
-            List<String> possibleCommands = new ArrayList<>();
-            String currentInput = args[0];
-
-            for (MXSubCommand subCommand : this.subCommands) {
-                if (subCommand.onlyPlayerCanUse() && !(commandSender instanceof Player)) {
-                    continue;
+        addSyntax((sender, context) -> {
+            String[] parts = context.get(subCommandArg);
+            if (parts.length == 0) {
+                showHelps(sender);
+                return;
+            }
+            String sCommand = parts[0];
+            String[] args = parts.length > 1 ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
+            for (MXSubCommand subCommand : subCommands) {
+                if (!subCommand.getName().equalsIgnoreCase(sCommand)) continue;
+                if (subCommand.onlyPlayerCanUse() && !(sender instanceof Player)) {
+                    sender.sendMessage(Component.text("This command can only be used by player!", NamedTextColor.RED));
+                    return;
                 }
-                if (!subCommand.hasPermission(commandSender)) {
-                    continue;
+                if (!subCommand.hasPermission(sender)) {
+                    sender.sendMessage(Component.text("You don't have permission!", NamedTextColor.RED));
+                    return;
                 }
-                if (currentInput.isEmpty()) {
-                    possibleCommands.add(subCommand.getName());
-                } else if (subCommand.getName().startsWith(currentInput.toLowerCase(Locale.ROOT))) {
-                    possibleCommands.add(subCommand.getName());
-                }
+                subCommand.onCommand(sender, args);
+                return;
             }
-            return possibleCommands;
-        }
-        // or if already have a sub command, then do sub command's tab complete
-        for (MXSubCommand subCommand : this.subCommands) {
-            if (!subCommand.getName().equalsIgnoreCase(args[0])) {
-                continue;
-            }
-            if (subCommand.onlyPlayerCanUse() && !(commandSender instanceof Player)) {
-                return ImmutableList.of(); // return empty list
-            }
-            if (!subCommand.hasPermission(commandSender)) {
-                return ImmutableList.of(); // return empty list
-            }
-            String[] processedArgs = this.processArgs(args);
-            return subCommand.onTabComplete(commandSender, processedArgs);
-        }
-        // if not found, just return empty list
-        return ImmutableList.of();
+            showHelps(sender);
+        }, subCommandArg);
     }
 
-    private String[] processArgs(String[] args) {
-        String[] tempArgs = new String[args.length - 1];
-        System.arraycopy(args, 1, tempArgs, 0, args.length - 1);
-        return tempArgs;
-    }
-
-    /*private static final String[] s = new String[]{
-            wrapColors("&9&l" + MX.name + " &fCommands"),
-            "",
-            wrapColors("&e/" + MX.command + " alerts &f- &cturn on/off alerts"),
-            wrapColors("&e/" + MX.command + " info <player> &f- &cplayer info"),
-            wrapColors("&e/" + MX.command + " ban <player> &f- &cforce ban"),
-            wrapColors("&e/" + MX.command + " reload &f- &cconfig reload"),
-            wrapColors("&e/" + MX.command + " stat &f- &cglobal statistics"),
-            wrapColors("&e/" + MX.command + " bc &f- &cmessage for all players"),
-            wrapColors("&e/" + MX.command + " debug &f- &cverbose checks"),
-            wrapColors("&e/" + MX.command + " fun &f- &cfun things"),
-            ""
-    };*/
     private void showHelps(CommandSender sender) {
-        sender.sendMessage(wrapColors("&9&l" + MX.name + " &fCommands"));
-        sender.sendMessage("");
+        sender.sendMessage(Component.text(MX.name + " Commands", NamedTextColor.AQUA).decorate(TextDecoration.BOLD));
+        sender.sendMessage(Component.empty());
         for (MXSubCommand subCommand : subCommands) {
-            // check only player can use
-            if (subCommand.onlyPlayerCanUse() && !(sender instanceof Player)) {
-                continue;
+            if (subCommand.onlyPlayerCanUse() && !(sender instanceof Player)) continue;
+            if (!subCommand.hasPermission(sender)) continue;
+
+            Component message = Component.text("/" + MX.command + " " + subCommand.getName() + " ", NamedTextColor.YELLOW)
+                    .append(Component.text("- " + subCommand.getDescription(), NamedTextColor.RED));
+
+            if (sender instanceof Player player) {
+                message = message.clickEvent(ClickEvent.suggestCommand("/" + MX.command + " " + subCommand.getName()));
+                message = message.hoverEvent(HoverEvent.showText(
+                        Component.text("Command: ", NamedTextColor.YELLOW)
+                                .append(Component.text(subCommand.getName(), NamedTextColor.RED))
+                                .append(Component.newline())
+                                .append(Component.text("Description: ", NamedTextColor.YELLOW))
+                                .append(Component.text(subCommand.getDescription(), NamedTextColor.RED))
+                                .append(Component.newline())
+                                .append(Component.text("Usage: ", NamedTextColor.YELLOW))
+                                .append(Component.text(subCommand.getUsage(), NamedTextColor.RED))
+                ));
             }
-            // check permission
-            if (!subCommand.hasPermission(sender)) {
-                continue;
-            }
-            String message = wrapColors(ChatColor.YELLOW + "/" + MX.command + " " + subCommand.getName() + " " + ChatColor.WHITE + "- " + ChatColor.RED + subCommand.getDescription());
-            if (sender instanceof Player) {
-                TextComponent textComponent = new TextComponent(message);
-                textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + MX.command + " " + subCommand.getName()));
-                textComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        new ComponentBuilder("Command: ").color(ChatColor.YELLOW).append(subCommand.getName()).color(ChatColor.RED)
-                                .append("\nDescription: ").color(ChatColor.YELLOW).append(subCommand.getDescription()).color(ChatColor.RED)
-                                .append("\nUsage: ").color(ChatColor.YELLOW).append(subCommand.getUsage()).color(ChatColor.RED)
-                                .create()));
-                ((Player) sender).spigot().sendMessage(textComponent);
-            } else {
-                sender.sendMessage(message);
-            }
+            sender.sendMessage(message);
         }
     }
 }

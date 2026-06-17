@@ -6,10 +6,12 @@ import kireiko.dev.anticheat.core.AsyncScheduler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.util.Vector;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.utils.time.TimeUnit;
 
 import java.util.HashSet;
 import java.util.List;
@@ -22,40 +24,44 @@ public final class SimulationFlagService {
     private static final List<Flag> flags = new CopyOnWriteArrayList<>();
 
     public static void init() {
-        Bukkit.getScheduler().runTaskTimer(MX.getInstance(), () -> {
+        MinecraftServer.getSchedulerManager().buildTask(() -> {
             AsyncScheduler.run(() -> {
                 final Set<Flag> toRemove = new HashSet<>();
                 for (Flag flag : flags) {
-                    flag.getLocation().add(flag.getVector());
+                    flag.location = flag.location.add(flag.vector);
                     if (!isPointWall(flag.getLocation(), 0.3)) {
-                        final Location finalLoc = flag.getLocation().clone();
-                        Bukkit.getScheduler().runTask(MX.getInstance(), () -> {
+                        final Pos finalLoc = flag.getLocation();
+                        MinecraftServer.getSchedulerManager().buildTask(() -> {
                             flag.getProfile().getPlayer().teleport(finalLoc);
-                        });
-                        flag.setVector(new Vector(
-                                flag.vector.getX() * 0.91,
-                                flag.vector.getY() - (0.08 * 0.98),
-                                flag.vector.getZ() * 0.91));
+                        }).schedule();
+                        flag.setVector(new Vec(
+                                flag.vector.x() * 0.91,
+                                flag.vector.y() - (0.08 * 0.98),
+                                flag.vector.z() * 0.91));
                     } else toRemove.add(flag);
                 }
                 flags.removeAll(toRemove);
             });
-        }, 0L, 1L);
+        }).repeat(1, TimeUnit.SERVER_TICK).schedule();
     }
 
-    private static boolean isPointWall(Location location, final double scale) {
-        final double x = location.getX();
-        final double y = location.getY() + 0.1;
-        final double z = location.getZ();
+    private static boolean isPointWall(Pos location, final double scale) {
+        final double x = location.x();
+        final double y = location.y() + 0.1;
+        final double z = location.z();
+        Instance instance = MinecraftServer.getInstanceManager().getInstances().stream().findFirst().orElse(null);
+        if (instance == null) return false;
+
         for (int dx = -1; dx <= 1; ++dx) {
             for (int dy = -1; dy <= 1; ++dy) {
                 for (int dz = -1; dz <= 1; ++dz) {
-                    final Material material = new Location(location.getWorld(),
-                            x + (double) dx * scale,
-                            y + (double) dy * scale,
-                            z + (double) dz * scale).getBlock().getType();
+                    final Block block = instance.getBlock(
+                            (int) (x + (double) dx * scale),
+                            (int) (y + (double) dy * scale),
+                            (int) (z + (double) dz * scale)
+                    );
 
-                    if (!material.toString().equals("AIR")) {
+                    if (!block.compare(Block.AIR)) {
                         return true;
                     }
                 }
@@ -68,7 +74,7 @@ public final class SimulationFlagService {
     @AllArgsConstructor
     public static class Flag {
         private final PlayerProfile profile;
-        private Location location;
-        private Vector vector;
+        private Pos location;
+        private Vec vector;
     }
 }

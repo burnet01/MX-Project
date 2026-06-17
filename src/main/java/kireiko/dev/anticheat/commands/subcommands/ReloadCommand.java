@@ -1,12 +1,10 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.commands.MXSubCommand;
 import kireiko.dev.anticheat.managers.CheckManager;
 import kireiko.dev.anticheat.utils.ConfigCache;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
 
 import java.util.List;
 
@@ -38,8 +36,7 @@ public final class ReloadCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
-        MX.getInstance().reloadConfig();
+    public boolean onCommand(CommandSender sender, String[] args) {
         ConfigCache.loadConfig();
         CheckManager.init();
         sender.sendMessage(wrapColors("&cConfig reloaded!"));
@@ -48,6 +45,6 @@ public final class ReloadCommand extends MXSubCommand {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
-        return ImmutableList.of();
+        return List.of();
     }
 }

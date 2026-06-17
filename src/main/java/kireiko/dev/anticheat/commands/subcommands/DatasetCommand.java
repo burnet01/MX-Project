@@ -3,10 +3,9 @@ package kireiko.dev.anticheat.commands.subcommands;
 import kireiko.dev.anticheat.MX;
 import kireiko.dev.anticheat.checks.aim.ml.AimMLCheck;
 import kireiko.dev.anticheat.commands.MXSubCommand;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +24,7 @@ public final class DatasetCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " dataset <legit|cheat|off> <player|all>";
+        return "/mx dataset <legit|cheat|off> <player|all>";
     }
 
     @Override
@@ -44,7 +43,7 @@ public final class DatasetCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         String mode = args[0].toLowerCase();
         String targetArg = args[1].toLowerCase();
 
@@ -62,28 +61,28 @@ public final class DatasetCommand extends MXSubCommand {
 
         if (targetArg.equals("all") || targetArg.equals("*")) {
             int count = 0;
-            for (Player p : Bukkit.getOnlinePlayers()) {
+            for (Player p : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
                 if (isCheat == null) {
-                    AimMLCheck.RECORDING.remove(p.getUniqueId());
+                    AimMLCheck.RECORDING.remove(p.getUuid());
                 } else {
-                    AimMLCheck.RECORDING.put(p.getUniqueId(), isCheat);
+                    AimMLCheck.RECORDING.put(p.getUuid(), isCheat);
                 }
                 count++;
             }
             sender.sendMessage("§aApplied dataset mode §e" + mode.toUpperCase() + " §ato §e" + count + " §aonline players.");
         } else {
-            Player target = Bukkit.getPlayer(args[1]);
+            Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(args[1]);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found.");
                 return true;
             }
 
             if (isCheat == null) {
-                AimMLCheck.RECORDING.remove(target.getUniqueId());
-                sender.sendMessage("§eStopped recording for " + target.getName());
+                AimMLCheck.RECORDING.remove(target.getUuid());
+                sender.sendMessage("§eStopped recording for " + target.getUsername());
             } else {
-                AimMLCheck.RECORDING.put(target.getUniqueId(), isCheat);
-                sender.sendMessage(isCheat ? "§cNow recording CHEAT data for " + target.getName() : "§aNow recording LEGIT data for " + target.getName());
+                AimMLCheck.RECORDING.put(target.getUuid(), isCheat);
+                sender.sendMessage(isCheat ? "§cNow recording CHEAT data for " + target.getUsername() : "§aNow recording LEGIT data for " + target.getUsername());
             }
         }
         return true;
@@ -95,8 +94,8 @@ public final class DatasetCommand extends MXSubCommand {
         if (args.length == 2) {
             List<String> suggestions = new ArrayList<>();
             suggestions.add("all");
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                suggestions.add(p.getName());
+            for (Player p : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+                suggestions.add(p.getUsername());
             }
             return suggestions;
         }

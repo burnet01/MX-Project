@@ -1,12 +1,10 @@
 package kireiko.dev.anticheat.commands.subcommands;
 
-import com.google.common.collect.ImmutableList;
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
 import kireiko.dev.anticheat.commands.MXSubCommand;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
+import net.minestom.server.entity.Player;
 
 import java.util.List;
 
@@ -38,7 +36,7 @@ public final class DebugCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         Player player = (Player) sender;
         PlayerProfile profile = PlayerContainer.getProfile(player);
         if (profile == null) {
@@ -51,6 +49,6 @@ public final class DebugCommand extends MXSubCommand {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
-        return ImmutableList.of();
+        return List.of();
     }
 }

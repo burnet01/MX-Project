@@ -8,8 +8,7 @@ import kireiko.dev.millennium.ml.FactoryML;
 import kireiko.dev.millennium.ml.data.ObjectML;
 import kireiko.dev.millennium.ml.logic.Millennium;
 import kireiko.dev.millennium.vectors.Pair;
-import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+import net.minestom.server.command.CommandSender;
 
 import java.util.List;
 
@@ -26,7 +25,7 @@ public final class TrainCommand extends MXSubCommand {
 
     @Override
     public String getUsage() {
-        return "/" + MX.command + " train <modelIndex> <epochs>";
+        return "/mx train <modelIndex> <epochs>";
     }
 
     @Override
@@ -45,7 +44,7 @@ public final class TrainCommand extends MXSubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, String[] args) {
+    public boolean onCommand(CommandSender sender, String[] args) {
         int index;
         int epochs;
         try {
@@ -71,10 +70,10 @@ public final class TrainCommand extends MXSubCommand {
                     sender.sendMessage("§cDataset is empty.");
                     return;
                 }
-                
+
                 int cheats = 0;
-                for(Pair<List<ObjectML>, Boolean> p : dataset) if(p.getY()) cheats++;
-                
+                for (Pair<List<ObjectML>, Boolean> p : dataset) if (p.getY()) cheats++;
+
                 sender.sendMessage("§aLoaded " + dataset.size() + " samples (" + cheats + " cheats, " + (dataset.size() - cheats) + " legit).");
                 sender.sendMessage("§eTraining " + epochs + " epochs...");
 

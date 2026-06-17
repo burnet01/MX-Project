@@ -1,19 +1,18 @@
 package kireiko.dev.anticheat.listeners;
 
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.player.PlayerBlockInteractEvent;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 
-public final class GhostBlockTest implements Listener {
+public final class GhostBlockTest {
 
-    @EventHandler
-    public void block(BlockPlaceEvent event) {
-        event.setCancelled(true);
-    }
+    public static void register(GlobalEventHandler handler) {
+        handler.addListener(PlayerBlockPlaceEvent.class, event -> {
+            event.setCancelled(true);
+        });
 
-    @EventHandler
-    public void breAk(BlockBreakEvent event) {
-        event.setCancelled(true);
+        handler.addListener(PlayerBlockInteractEvent.class, event -> {
+            event.setCancelled(true);
+        });
     }
 }

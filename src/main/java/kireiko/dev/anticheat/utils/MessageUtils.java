@@ -2,10 +2,10 @@ package kireiko.dev.anticheat.utils;
 
 import kireiko.dev.anticheat.api.data.PlayerContainer;
 import kireiko.dev.anticheat.api.player.PlayerProfile;
-import kireiko.dev.anticheat.utils.version.VersionUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.entity.Player;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -14,45 +14,46 @@ import java.util.regex.Pattern;
 
 public final class MessageUtils {
 
-    private static final Pattern HEX_PATTERN =
-                    Pattern.compile("(?i)&#([A-F0-9]{6})");
+    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)&#([A-F0-9]{6})");
+    private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer.legacySection();
 
     public static void sendMessagesToPlayers(String permission, String message) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
             PlayerProfile profile = PlayerContainer.getProfile(player);
             if (profile == null || !profile.isAlerts()) {
                 continue;
             }
-            if (player.hasPermission(permission)) {
-                player.sendMessage(wrapColors(message));
+            if (player.getPermissionLevel() >= 1) {
+                player.sendMessage(wrapColorsToComponent(message));
             }
         }
     }
 
     public static void sendMessagesToPlayersNative(String permission, String permission2, String message) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission(permission) || player.hasPermission(permission2)) {
-                player.sendMessage(wrapColors(message));
+        for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+            if (player.getPermissionLevel() >= 1) {
+                player.sendMessage(wrapColorsToComponent(message));
             }
         }
     }
 
     public static String wrapColors(String input) {
         if (input == null) return null;
-        if (VersionUtil.is1_16orAbove()) {
-            Matcher matcher = HEX_PATTERN.matcher(input);
-            StringBuffer sb = new StringBuffer(input.length() * 2);
+        Matcher matcher = HEX_PATTERN.matcher(input);
+        StringBuffer sb = new StringBuffer(input.length() * 2);
 
-            while (matcher.find()) {
-                String hexCode = "#" + matcher.group(1); // "#A1B2C3"
-                String replacement = net.md_5.bungee.api.ChatColor.of(hexCode).toString(); // §x§A§1§B§2§C§3
-                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
-            }
-            matcher.appendTail(sb);
-
-            return ChatColor.translateAlternateColorCodes('&', sb.toString());
+        while (matcher.find()) {
+            String hexCode = "#" + matcher.group(1);
+            String replacement = "§x§" + hexCode.charAt(1) + "§" + hexCode.charAt(2) + "§" + hexCode.charAt(3) + "§" + hexCode.charAt(4) + "§" + hexCode.charAt(5) + "§" + hexCode.charAt(6);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
-        return ChatColor.translateAlternateColorCodes('&', input);
+        matcher.appendTail(sb);
+
+        return sb.toString();
+    }
+
+    public static Component wrapColorsToComponent(String input) {
+        return SERIALIZER.deserialize(wrapColors(input));
     }
 
     public static String wrapColors(String... v) {

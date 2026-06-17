@@ -33,8 +33,8 @@ public final class AimBasicCheck implements HeuristicComponent {
         //profile.getPlayer().sendMessage("x: " + event.getDelta().getX() + " y: " + event.getDelta().getY());
         final int randomizerFlawVl = (int) localCfg.get("randomizer_flaw_addVl");
         if (randomizerFlawVl > 0 && (((event.getDelta().getY() > 1.5f || event.getDelta().getX() > 3.0f)
-                && (profile.getTo().getPitch() == 0
-                || profile.getTo().getPitch() % 0.01f == 0)))) {
+                && (profile.getTo().pitch() == 0
+                || profile.getTo().pitch() % 0.01f == 0)))) {
             profile.punish("Aim", "Randomizer", "[Heuristic] Randomizer flaw", (randomizerFlawVl) / 10f);
         }
         if (this.rawRotations.size() >= 10) checkDefaultAim();

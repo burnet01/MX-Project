@@ -1,7 +1,5 @@
 package kireiko.dev.anticheat.checks.clicks;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.PacketEvent;
 import kireiko.dev.anticheat.api.PacketCheckHandler;
 import kireiko.dev.anticheat.api.data.ConfigLabel;
 import kireiko.dev.anticheat.api.events.*;
@@ -11,9 +9,7 @@ import kireiko.dev.anticheat.services.SimulationFlagService;
 import kireiko.dev.anticheat.utils.ConfigCache;
 import kireiko.dev.millennium.math.Simplification;
 import kireiko.dev.millennium.math.Statistics;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.util.Vector;
+import net.minestom.server.event.player.PlayerPacketEvent;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -21,7 +17,7 @@ import java.util.regex.Pattern;
 public final class AutoClickerCheck implements PacketCheckHandler {
     private final PlayerProfile profile;
     private long oldTime = System.currentTimeMillis(),
-                    lastMove = System.currentTimeMillis(), lastAttack = System.currentTimeMillis();
+            lastMove = System.currentTimeMillis(), lastAttack = System.currentTimeMillis();
     private boolean enabled = false;
     private final List<Long> stack = new ArrayList<>();
     private boolean entropyQuery = false;
@@ -33,6 +29,7 @@ public final class AutoClickerCheck implements PacketCheckHandler {
         localCfg.put("addGlobalVl", 20);
         return new ConfigLabel("auto_clicker", localCfg);
     }
+
     @Override
     public void applyConfig(Map<String, Object> params) {
         localCfg = params;
@@ -43,7 +40,6 @@ public final class AutoClickerCheck implements PacketCheckHandler {
         return localCfg;
     }
 
-
     public AutoClickerCheck(PlayerProfile profile) {
         this.profile = profile;
         if (CheckManager.classCheck(this.getClass()))
@@ -53,20 +49,19 @@ public final class AutoClickerCheck implements PacketCheckHandler {
     @Override
     public void event(Object o) {
         if (!(boolean) localCfg.get("enabled")) return;
-        if (o instanceof CPacketEvent) {
-            PacketEvent event = ((CPacketEvent) o).getPacketEvent();
-            PacketType type = event.getPacket().getType();
-            if (type.equals(PacketType.Play.Client.BLOCK_DIG)) {
+        if (o instanceof CPacketEvent packetEvent) {
+            PlayerPacketEvent event = packetEvent.getPacketEvent();
+            if (event.getPacket() instanceof net.minestom.server.network.packet.client.play.ClientPlayerActionPacket) {
                 enabled = false;
-            } else if (type.equals(PacketType.Play.Client.USE_ENTITY)) {
+            } else if (event.getPacket() instanceof net.minestom.server.network.packet.client.play.ClientInteractEntityPacket) {
                 lastAttack = System.currentTimeMillis();
                 enabled = true;
-            } else if (type.equals(PacketType.Play.Client.ARM_ANIMATION)) {
+            } else if (event.getPacket() instanceof net.minestom.server.network.packet.client.play.ClientAnimationPacket) {
                 long delay = (System.currentTimeMillis() - oldTime) / 50;
                 if (delay < 25
-                     && enabled
-                     && lastMove + 500 > System.currentTimeMillis()
-                     && lastAttack + 7000 > System.currentTimeMillis()
+                        && enabled
+                        && lastMove + 500 > System.currentTimeMillis()
+                        && lastAttack + 7000 > System.currentTimeMillis()
                 ) {
                     stack.add(delay);
                     if (stack.size() > 100) {

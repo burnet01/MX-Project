@@ -1,11 +1,15 @@
 # MX Anticheat (originally Mineland Xcalibur) - Minestom Port
 
-![Java](https://img.shields.io/badge/Java-1.8%2B-ed8b00?style=for-the-badge&logo=java&logoColor=white)
+Java: 25
 ![Version](https://img.shields.io/badge/Version-5.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Unlicense-green?style=for-the-badge)
 ![AI](https://img.shields.io/badge/AI-Millennium_5-purple?style=for-the-badge)
 
 > **Advanced entropy analysis powered by local Recurrent Neural Networks (RNN)**.
+
+### NOTICES ABOUT PORT ###
+
+While this port does okay, *still in beta stages*. You should problably use something already made. This is meant to replicate and use the MX's projects code in order to write and make complex "checks" or rather predictions. I am still in the process of making checks myself. This port is meant for TESTING ONLY. And only at a basic level... This port does not have any permissions (because Minestom itself doesn't have a permissions system, unlike Bukkit or Spigot). Some of the tech is going to be a 50-50, due to how packets are handled on the "root level" (Minestom) versus being on the plugin level, ProtocolLib (which is what this system was based off of). Some of the tech is not offered such as Unbreakable (the cheat that deals with making an item not break no matter how much you use it) and various others simply because Minestom doesn't have any implementations for it at this moment in time. Also please notice, this port NEEDS Java 25 in order to run (or build).
 
 MX is a free, open-source, **Zero-Dependency** Machine Learning anticheat for Minecraft (1.8 - 1.21). 
 Powered by powerful heuristic algorithms combined with machine learning on a self-written RNN (Millennium 5) basis.

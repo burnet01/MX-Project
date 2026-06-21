@@ -22,6 +22,8 @@ aim_ml:
   suspected_vl: 40
 ghost_block_abuse:
   enabled: false
+baritone:
+  enabled: false
 aim_complex:
   addGlobalVl(entropy): 0
   localVlLimit(randomizer): 2.5
@@ -32,8 +34,6 @@ aim_complex:
   localVlLimit(distinct): 4.0
   hitCancelTimeMS(entropy): 5000
   localVlLimit(entropy): 30
-baritone:
-  enabled: false
 aim_statistics:
   hitCancelTimeMS(iqr): 0
   addGlobalVl(improbable): 30
